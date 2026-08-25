@@ -1,0 +1,12 @@
+package com.drishti.dto;
+
+public enum AlertType {
+    VITALS_HR_HIGH,
+    VITALS_HR_LOW,
+    VITALS_TEMP_HIGH,
+    SOLDIER_SUSPECT,
+    SOLDIER_KIA,
+    THREAT_DETECTED,
+    SILENT_CMD_RECEIVED,
+    SYSTEM_LOW_BATTERY
+}

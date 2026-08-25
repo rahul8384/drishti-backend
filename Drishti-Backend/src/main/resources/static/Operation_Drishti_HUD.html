@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operation Drishti — Combat HUD Demo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:monospace}
+
+.visor{
+  width:100vw;height:100vh;
+  background:linear-gradient(160deg,#020e02 0%,#051405 50%,#020902 100%);
+  position:relative;overflow:hidden;
+}
+
+/* scanlines */
+.scanline{
+  position:absolute;inset:0;pointer-events:none;z-index:100;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,60,.013) 3px,rgba(0,255,60,.013) 4px);
+}
+/* vignette */
+.vig{
+  position:absolute;inset:0;pointer-events:none;z-index:99;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8) 100%);
+}
+
+/* ───── COMPASS STRIP ───── */
+.compass{
+  position:absolute;top:0;left:0;right:0;height:36px;
+  background:rgba(0,18,0,.95);
+  border-bottom:1px solid rgba(0,255,60,.3);
+  overflow:hidden;display:flex;align-items:center;z-index:20;
+}
+.compass-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.compass-marker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 24px;
+  background: #ff3030;
+  box-shadow: 0 0 6px rgba(255, 48, 48, 0.9);
+}
+
+.compass-marker-label {
+  position: absolute;
+  top: -12px;
+  left: -8px;
+  font-size: 7px;
+  color: #ff6060;
+  white-space: nowrap;
+  font-weight: bold;
+}
+
+.ctape{
+  display:flex;align-items:center;white-space:nowrap;
+}
+
+.cd{color:rgba(0,210,55,.45);font-size:11px;padding:0 7px;letter-spacing:.5px}
+.cc{color:#00ff46;font-size:14px;font-weight:bold;padding:0 5px}
+.ct{color:#ff2020;font-size:12px;padding:0 4px;animation:blink .7s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+
+/* ───── REAR CAM STRIP ───── */
+.rcam{
+  position:absolute;top:36px;left:0;right:0;height:110px;
+  background:#010b01;border-bottom:1px solid rgba(0,255,60,.22);
+  overflow:hidden;
+}
+.rcam-lbl{position:absolute;top:5px;left:10px;font-size:9px;color:rgba(0,255,60,.4);letter-spacing:3px;z-index:5}
+.rcam-feed{
+  position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(0,22,0,.85) 0,rgba(0,15,0,.92) 2px,rgba(0,32,0,.75) 4px,rgba(0,10,0,.96) 6px);
+}
+
+/* moving trees/structures in bg */
+.rbg{position:absolute;bottom:0;height:60%;width:200%;animation:rbgscroll 30s linear infinite;opacity:.18}
+.rfig{
+  position:absolute;bottom:12px;width:16px;height:40px;
+  background:rgba(255,35,35,.65);border:1px solid rgba(255,65,65,.85);border-radius:2px;
+  animation:rfigmov 8s ease-in-out infinite;
+}
+.rfig::before{
+  content:'';position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  width:12px;height:12px;border-radius:50%;
+  background:rgba(255,35,35,.65);border:1px solid rgba(255,65,65,.85);
+}
+@keyframes rfigmov{0%,100%{left:15%}25%{left:28%}55%{left:50%}75%{left:40%}}
+.rbox{
+  position:absolute;bottom:6px;width:28px;height:54px;
+  border:1px solid rgba(255,195,0,.85);animation:rfigmov 8s ease-in-out infinite;
+}
+.rbox::after{content:'HR:88';position:absolute;bottom:-15px;left:0;font-size:7px;color:rgba(255,195,0,.7);white-space:nowrap}
+.recdot{position:absolute;top:7px;right:10px;width:10px;height:10px;border-radius:50%;background:#ff1010;animation:blink 1s ease-in-out infinite;box-shadow:0 0 8px rgba(255,0,0,.6);z-index:5}
+.target-blip {
+  position: absolute;
+  width: 35px;
+  height: 80px;
+  background: rgba(255, 50, 50, 0.8);
+  border: 1px solid rgba(255, 100, 100, 0.9);
+  border-radius: 2px;
+  animation: blipIn 0.3s ease-in, blipOut 0.3s ease-out 2.7s forwards;
+  z-index: 10;
+}
+
+@keyframes blipIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes blipOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+.target-label {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  font-size: 7px;
+  color: rgba(255, 150, 150, 0.9);
+  white-space: nowrap;
+}
+.reclbl{position:absolute;top:6px;right:24px;font-size:8px;color:rgba(255,65,65,.8);letter-spacing:1px;z-index:5}
+
+/* ───── MODE INDICATOR ───── */
+.modebar{
+  position:absolute;top:146px;left:50%;transform:translateX(-50%);
+  background:rgba(0,28,0,.8);border:1px solid rgba(0,255,60,.35);
+  padding:3px 18px;font-size:10px;color:#00ff46;letter-spacing:3px;
+  animation:modefade 6s ease-in-out 1s infinite;white-space:nowrap;z-index:20;
+}
+@keyframes modefade{0%,12%,88%,100%{opacity:0}35%,65%{opacity:1}}
+
+/* ───── CORNER BRACKETS ───── */
+.cor{position:absolute;width:20px;height:20px;z-index:20}
+.cor.tl{top:146px;left:0;border-top:1px solid rgba(0,255,60,.55);border-left:1px solid rgba(0,255,60,.55)}
+.cor.tr{top:146px;right:0;border-top:1px solid rgba(0,255,60,.55);border-right:1px solid rgba(0,255,60,.55)}
+.cor.bl{bottom:26px;left:0;border-bottom:1px solid rgba(0,255,60,.55);border-left:1px solid rgba(0,255,60,.55)}
+.cor.br{bottom:26px;right:0;border-bottom:1px solid rgba(0,255,60,.55);border-right:1px solid rgba(0,255,60,.55)}
+
+/* ───── ALERT ───── */
+.alert-panel {
+  position: absolute;
+  top: 150px;
+  right: 215px;
+  width: 200px;
+  background: rgba(28, 0, 0, 0.95);
+  border: 1.5px solid rgba(255, 30, 30, 0.6);
+  padding: 8px;
+  z-index: 30;
+  animation: alertPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes alertPulse {
+  0%, 100% { border-color: rgba(255, 30, 30, 0.3); }
+  50% { border-color: rgba(255, 30, 30, 0.9); }
+}
+
+.alert-header {
+  font-size: 9px;
+  color: #ff3030;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.alert-list {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.alert-entry {
+  font-size: 8px;
+  color: rgba(255, 100, 100, 0.9);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 30, 30, 0.2);
+}
+
+.alert-entry:last-child {
+  border-bottom: none;
+}
+
+/* ───── MAIN SCENE ───── */
+.main{
+  position:absolute;top:146px;left:0;right:0;bottom:26px;
+  display:flex;
+}
+.scene{flex:1;position:relative;overflow:hidden}
+
+/* terrain lines */
+.tline{position:absolute;left:0;right:0;border-top:1px solid rgba(0,255,60,.07)}
+
+/* wall */
+.wall{
+  position:absolute;bottom:32%;left:46%;
+  width:80px;height:95px;
+  background:rgba(18,45,18,.6);border:1px solid rgba(0,255,60,.18);
+}
+.wall::after{content:'COVER';position:absolute;top:-14px;left:0;font-size:7px;color:rgba(0,255,60,.25);letter-spacing:1px}
+
+/* AI ghost */
+.ghost{
+  position:absolute;width:20px;height:52px;
+  border:1px dashed rgba(255,105,0,.8);border-radius:2px;
+  bottom:33%;left:52%;
+  animation:ghostmov 4s ease-in-out infinite;
+}
+.ghost::before{content:'';position:absolute;top:-13px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;border:1px dashed rgba(255,105,0,.8)}
+.ghost::after{content:'AI PREDICTION';position:absolute;top:-26px;left:0;font-size:7px;color:rgba(255,125,0,.9);white-space:nowrap;letter-spacing:1px}
+@keyframes ghostmov{0%,100%{opacity:.25;left:52%}50%{opacity:1;left:55%}}
+
+/* crosshair */
+.xh{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px}
+.xh::before,.xh::after{content:'';position:absolute;background:rgba(0,255,60,.3)}
+.xh::before{top:50%;left:0;right:0;height:1px;transform:translateY(-50%)}
+.xh::after{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%)}
+.xhc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,255,60,.4)}
+.xhc2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,255,60,.12)}
+
+/* range */
+.rng{position:absolute;bottom:25%;left:8px;display:flex;flex-direction:column;gap:14px}
+.rm{font-size:8px;color:rgba(0,255,60,.35);display:flex;align-items:center;gap:4px}
+.rm::after{content:'';display:block;width:24px;height:1px;background:rgba(0,255,60,.18)}
+
+/* azimuth lines */
+.azline{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,255,60,.05)}
+
+/* silent cmd */
+.scmd{
+  position:absolute;bottom:calc(24% + 10px);left:0;right:210px;
+  text-align:center;font-size:9px;color:rgba(0,255,60,.7);letter-spacing:2px;
+  animation:scmdfade 8s ease-in-out 2s infinite;z-index:10;
+}
+@keyframes scmdfade{0%,12%,88%,100%{opacity:0}35%,65%{opacity:1}}
+
+/* ───── MAP ───── */
+.map{
+  position:absolute;bottom:0;left:0;
+  width:210px;height:185px;
+  background:rgba(0,12,0,.94);border:1px solid rgba(0,255,60,.32);
+  border-radius:4px;overflow:hidden;
+}
+.mlbl{position:absolute;top:4px;left:6px;font-size:8px;color:rgba(0,255,60,.45);letter-spacing:2px}
+.mdir{position:absolute;top:4px;right:6px;font-size:9px;color:rgba(0,255,60,.6);font-weight:bold}
+.mgrid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,255,60,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,60,.04) 1px,transparent 1px);
+  background-size:22px 22px;
+}
+.mring{position:absolute;border-radius:50%;border:1px solid rgba(0,200,60,.12)}
+/* route line */
+.mroute{position:absolute;border-top:1px dashed rgba(0,255,60,.2);transform-origin:left center}
+.mdot{position:absolute;width:9px;height:9px;border-radius:50%;border:1.5px solid currentColor;transform:translate(-50%,-50%)}
+.mdot.ms{color:#00ff46;background:rgba(0,255,70,.32);animation:ping 2.2s ease-out infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(0,255,70,.55)}70%{box-shadow:0 0 0 10px rgba(0,255,70,0)}100%{box-shadow:0 0 0 0 rgba(0,255,70,0)}}
+.mdot.ma{color:#00cc38;background:rgba(0,200,55,.25)}
+.mdot.mb{color:#00aa2c;background:rgba(0,170,42,.25)}
+.mdot.mc{color:#009925;background:rgba(0,150,36,.25);animation:cmov 5.5s ease-in-out infinite}
+@keyframes cmov{0%,100%{top:62%;left:28%}50%{top:55%;left:38%}}
+.mdot.me{color:#ff2020;background:rgba(255,30,30,.32);animation:blink 1s ease-in-out infinite}
+.mdlbl{position:absolute;font-size:7px;white-space:nowrap}
+/* risk zone */
+.mzone{position:absolute;border-radius:50%;background:rgba(255,30,30,.08);border:1px solid rgba(255,30,30,.2);animation:zonepulse 3s ease-in-out infinite}
+@keyframes zonepulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ───── VITALS ───── */
+.vitals{
+  position:absolute;right:0;top:0;bottom:0;width:210px;
+  background:rgba(0,10,0,.78);border-left:1px solid rgba(0,255,60,.2);
+  display:flex;flex-direction:column;padding:8px 0;gap:0;
+}
+.vlbl{font-size:7px;color:rgba(0,255,60,.38);letter-spacing:3px;text-align:center;margin-bottom:4px}
+.vrow{
+  display:flex;align-items:center;padding:7px 10px;gap:8px;
+  border-bottom:1px solid rgba(0,255,60,.06);
+}
+.vc{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;font-weight:bold}
+.vc.ok{color:#00ff46;background:rgba(0,255,70,.1)}
+.vc.w{color:#ffaa00;background:rgba(255,170,0,.1);animation:blink 1.4s ease-in-out infinite}
+.vc.d{color:#2a2a2a;background:rgba(20,20,20,.2)}
+.vc.skull::after{content:'✕';color:#333;font-size:9px}
+.vinfo{flex:1}
+.vname{font-size:8px;color:rgba(0,255,60,.65)}
+.vdetail{display:flex;gap:8px;margin-top:2px;align-items:center}
+.vhr{font-size:10px;font-weight:bold}
+.vhr.ok{color:#00ff46}
+.vhr.w{color:#ffaa00}
+.vhr.d{color:#2a2a2a}
+.vstatus{font-size:7px;padding:1px 4px;border-radius:2px}
+.vstatus.ok{color:#00cc38;background:rgba(0,200,50,.12);border:1px solid rgba(0,200,50,.2)}
+.vstatus.w{color:#ffaa00;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.2)}
+.vstatus.d{color:#333;background:rgba(30,30,30,.2);border:1px solid rgba(50,50,50,.3)}
+.vgps{font-size:7px;color:rgba(0,200,50,.4);margin-top:1px}
+
+/* ───── STATUS BAR ───── */
+.statusbar{
+  position:absolute;bottom:0;left:0;right:0;height:26px;
+  background:rgba(0,14,0,.92);border-top:1px solid rgba(0,255,60,.2);
+  display:flex;align-items:center;justify-content:space-between;padding:0 10px;z-index:20;
+}
+.sl{font-size:8px;color:rgba(0,255,60,.45);letter-spacing:.5px}
+.sc{font-size:8px;color:rgba(0,255,60,.35)}
+.sr{font-size:9px;color:rgba(0,255,60,.7);font-weight:bold}
+.phbadge{display:inline-block;padding:0 6px;background:rgba(0,255,60,.1);border:1px solid rgba(0,255,60,.3);font-size:7px;color:#00ff46;letter-spacing:1px;margin-left:7px;border-radius:2px}
+
+/* ───── DIALER POPUP ───── */
+.dialer{
+  position:absolute;bottom:235px;left:215px;
+  background:rgba(0,22,0,.93);border:1px solid rgba(0,255,60,.38);
+  padding:8px 12px;z-index:30;
+  min-width:140px;
+  display:none;
+}
+@keyframes dialerfade{0%,8%,92%,100%{opacity:0}25%,75%{opacity:1}}
+.dtitle{font-size:7px;color:rgba(0,255,60,.45);letter-spacing:3px;margin-bottom:6px}
+.dopt{font-size:9px;color:rgba(0,255,60,.5);padding:3px 0;display:flex;align-items:center;gap:7px}
+.dopt.sel{color:#00ff46}
+.dsel{width:5px;height:5px;border-radius:50%;background:#00ff46;flex-shrink:0}
+.dempty{width:5px;height:5px;flex-shrink:0}
+
+/* boot overlay */
+.boot{
+  position:absolute;inset:0;background:#000;z-index:200;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  animation:bootfade 2.5s ease-out forwards;
+}
+@keyframes bootfade{0%,60%{opacity:1}100%{opacity:0;pointer-events:none}}
+.boot-title{font-size:22px;color:#00ff46;letter-spacing:6px;font-weight:bold}
+.boot-sub{font-size:11px;color:rgba(0,255,60,.5);letter-spacing:4px}
+.boot-bar{width:280px;height:2px;background:rgba(0,255,60,.15);border-radius:2px;overflow:hidden}
+.boot-fill{height:100%;width:0;background:#00ff46;animation:bootbar 2s ease-out forwards}
+@keyframes bootbar{0%{width:0}100%{width:100%}}
+.boot-line{font-size:8px;color:rgba(0,255,60,.4);letter-spacing:2px;animation:bootlines .8s ease-out forwards}
+</style>
+</head>
+<body>
+
+<div class="visor">
+  <div class="scanline"></div>
+  <div class="vig"></div>
+
+  <!-- BOOT SCREEN -->
+  <div class="boot" id="boot">
+    <div class="boot-title">DRISHTI</div>
+    <div class="boot-sub">COMBAT HUD SYSTEM v1.0</div>
+    <div class="boot-bar"><div class="boot-fill"></div></div>
+    <div class="boot-line">INITIALISING SENSORS...</div>
+  </div>
+
+  <!-- COMPASS -->
+  <div class="compass">
+    <div class="ctape" id="compassTape">
+      <span class="cd">270</span><span class="cd">275</span><span class="cd">280</span><span class="cd">285</span>
+      <span class="cc">W</span><span class="cd">295</span><span class="cd">300</span><span class="cd">305</span>
+      <span class="cd">310</span><span class="cc">NW</span><span class="cd">320</span><span class="cd">325</span>
+      <span class="cd">330</span><span class="cd">335</span><span class="cd">340</span><span class="cd">345</span>
+      <span class="cc">N</span><span class="ct">&#9650;TGT</span>
+      <span class="cd">005</span><span class="cd">010</span><span class="cd">015</span><span class="cd">020</span>
+      <span class="cc">NE</span><span class="cd">035</span><span class="cd">045</span><span class="cd">055</span>
+      <span class="cc">E</span><span class="cd">075</span><span class="cd">085</span><span class="cd">095</span>
+      <span class="cc">SE</span><span class="cd">110</span><span class="cd">120</span><span class="cd">135</span>
+      <span class="cc">S</span><span class="cd">150</span><span class="cd">165</span><span class="cd">175</span>
+      <span class="cc">SW</span><span class="cd">195</span><span class="cd">205</span><span class="cd">220</span>
+      <span class="cc">W</span><span class="cd">240</span><span class="cd">255</span><span class="cd">265</span>
+      <span class="cd">270</span><span class="cd">275</span><span class="cd">280</span><span class="cd">285</span>
+      <span class="cc">W</span><span class="cd">295</span><span class="cd">300</span><span class="cd">305</span>
+      <span class="cd">310</span><span class="cc">NW</span><span class="cd">320</span><span class="cd">325</span>
+      <span class="cd">330</span><span class="cd">335</span><span class="cd">340</span><span class="cd">345</span>
+      <span class="cc">N</span><span class="ct">&#9650;TGT</span>
+    </div>
+	<div class="compass-markers" id="compassMarkers"></div>
+  </div>
+
+  <!-- REAR CAM -->
+  <!-- REAR CAM -->
+  <div class="rcam">
+    <span class="rcam-lbl">▮ REAR CAM</span>
+    <div class="rcam-feed" id="rcamFeed">
+      <!-- Targets will be spawned here dynamically -->
+    </div>
+    <span class="reclbl">REC</span>
+    <div class="recdot"></div>
+  </div>
+  
+  <!-- MODE -->
+  <div class="modebar">&#9655; MODE: NIGHT VISION ACTIVE</div>
+
+  <!-- CORNERS -->
+  <div class="cor tl"></div><div class="cor tr"></div>
+  <div class="cor bl"></div><div class="cor br"></div>
+
+  <!-- ALERT -->
+  <!-- ALERT BOX - SINGLE -->
+  <div class="alert-panel" id="alert-panel">
+    <div class="alert-header">⚠️ CONTACT ALERT</div>
+    <div class="alert-list" id="alert-list"></div>
+  </div>
+
+  <!-- MAIN SCENE -->
+  <div class="main">
+    <div class="scene">
+      <!-- terrain -->
+      <div class="tline" style="bottom:0"></div>
+      <div class="tline" style="bottom:15%"></div>
+      <div class="tline" style="bottom:30%"></div>
+      <div class="tline" style="bottom:48%"></div>
+      <div class="tline" style="bottom:65%"></div>
+      <!-- azimuth -->
+      <div class="azline" style="left:25%"></div>
+      <div class="azline" style="left:50%"></div>
+      <div class="azline" style="left:75%"></div>
+
+      <!-- range -->
+      <div class="rng">
+        <div class="rm">50M</div>
+        <div class="rm">100M</div>
+        <div class="rm">200M</div>
+        <div class="rm">300M</div>
+      </div>
+
+      <!-- wall -->
+      <div class="wall"></div>
+
+      <!-- ghost AI -->
+      <div class="ghost"></div>
+
+      <!-- crosshair -->
+      <div class="xh">
+        <div class="xhc2"></div>
+        <div class="xhc"></div>
+      </div>
+
+      <!-- silent cmd -->
+      <div class="scmd">&#9658;&#9658; ALPHA: HOLD POSITION</div>
+
+      <!-- dialer -->
+	  <div class="dialer" style="display:none">
+	    <div class="dtitle">◯ MODE SELECT</div>
+	    <div class="dopt sel" data-mode="nv"><div class="dsel"></div>NIGHT VISION</div>
+	    <div class="dopt" data-mode="thm"><div class="dempty"></div>THERMAL</div>
+	    <div class="dopt" data-mode="std"><div class="dempty"></div>STANDARD</div>
+	    <div class="dopt" data-mode="bko"><div class="dempty"></div>BLACKOUT</div>
+	  </div>
+	  
+      <!-- MAP -->
+      <div class="map">
+        <span class="mlbl">OPMAP</span>
+        <span class="mdir" id="heading">347°</span>
+        <div class="mgrid"></div>
+        <div class="mring" style="width:70px;height:55px;top:42%;left:42%;transform:translate(-50%,-50%)"></div>
+        <div class="mring" style="width:110px;height:85px;top:42%;left:42%;transform:translate(-50%,-50%)"></div>
+        <div class="mzone" style="width:40px;height:30px;top:20%;left:32%;transform:translate(-50%,-50%)"></div>
+
+        <div class="mdot ms" style="top:44%;left:43%"></div>
+        <div class="mdlbl" style="top:44%;left:46%;color:rgba(0,255,60,.75)">YOU</div>
+
+        <div class="mdot ma" style="top:26%;left:64%"></div>
+        <div class="mdlbl" style="top:26%;left:67%;color:rgba(0,200,55,.7)">ALPHA</div>
+
+        <div class="mdot mb" style="top:64%;left:58%"></div>
+        <div class="mdlbl" style="top:64%;left:61%;color:rgba(0,170,42,.7)">BRAVO</div>
+
+        <div class="mdot mc" style="top:62%;left:28%"></div>
+        <div class="mdlbl" style="top:62%;left:31%;color:rgba(0,150,36,.7)">CHARLIE</div>
+
+        <div class="mdot me" style="top:18%;left:32%"></div>
+        <div class="mdlbl" style="top:18%;left:35%;color:rgba(255,40,40,.9)">! ENM</div>
+      </div>
+
+    </div>
+
+    <!-- VITALS -->
+    <div class="vitals">
+      <div class="vlbl">SQUAD VITALS</div>
+
+      <div class="vrow">
+        <div class="vc ok">A</div>
+        <div class="vinfo">
+          <div class="vname">ALPHA / PTE SHARMA</div>
+          <div class="vdetail">
+            <div class="vhr ok" id="hrA">72</div>
+            <div class="vstatus ok">ACTIVE</div>
+          </div>
+          <div class="vgps">GPS: 34.0837°N 74.7973°E</div>
+        </div>
+      </div>
+
+      <div class="vrow">
+        <div class="vc ok">B</div>
+        <div class="vinfo">
+          <div class="vname">BRAVO / PTE RAWAT</div>
+          <div class="vdetail">
+            <div class="vhr ok" id="hrB">68</div>
+            <div class="vstatus ok">ACTIVE</div>
+          </div>
+          <div class="vgps">GPS: 34.0822°N 74.7981°E</div>
+        </div>
+      </div>
+
+      <div class="vrow">
+        <div class="vc w">C</div>
+        <div class="vinfo">
+          <div class="vname">CHARLIE / CPL VERMA</div>
+          <div class="vdetail">
+            <div class="vhr w" id="hrC">142</div>
+            <div class="vstatus w">ELEVATED</div>
+          </div>
+          <div class="vgps">GPS: 34.0811°N 74.7962°E</div>
+        </div>
+      </div>
+
+      <div class="vrow">
+        <div class="vc ok">D</div>
+        <div class="vinfo">
+          <div class="vname">DELTA / PTE NEGI</div>
+          <div class="vdetail">
+            <div class="vhr ok" id="hrD">81</div>
+            <div class="vstatus ok">ACTIVE</div>
+          </div>
+          <div class="vgps">GPS: 34.0845°N 74.7968°E</div>
+        </div>
+      </div>
+
+      <div class="vrow">
+        <div class="vc d skull"></div>
+        <div class="vinfo">
+          <div class="vname">ECHO / PTE KULKARNI</div>
+          <div class="vdetail">
+            <div class="vhr d">--</div>
+            <div class="vstatus d">KIA</div>
+          </div>
+          <div class="vgps" style="color:rgba(80,80,80,.4)">SIGNAL LOST 03:31:07</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="sl">SQ-07 &nbsp;|&nbsp; PARA SF 9 PARA &nbsp;|&nbsp; HLM-03 &nbsp;|&nbsp; OP: VAJRA</div>
+    <div class="sc" id="coords">34.0837°N &nbsp; 74.7973°E &nbsp;|&nbsp; ALT: 2847M</div>
+    <div class="sr"><span id="clk">03:42:21</span><span class="phbadge">PHASE II</span></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script>
+const socket = new SockJS('http://localhost:8080/ws/hud');
+const stomp = Stomp.over(socket);
+
+stomp.connect({}, () => {
+  console.log('HUD connected');
+  stomp.subscribe('/topic/hud', (msg) => {
+    const event = JSON.parse(msg.body);
+    if (event.type === 'ALERT' && event.payload.type !== 'THREAT_DETECTED') {
+      showAlert(event.payload);
+    }
+  });
+});
+
+// CLOCK
+let ss=21, mm=42, hh=3;
+setInterval(() => {
+  ss++; if(ss>=60){ss=0;mm++; if(mm>=60){mm=0;hh=(hh+1)%24}}
+  const p = n => String(n).padStart(2,'0');
+  const clkEl = document.getElementById('clk');
+  if (clkEl) clkEl.textContent = `${p(hh)}:${p(mm)}:${p(ss)}`;
+}, 1000);
+
+// COMPASS TRACKING
+let mouseHeading = 0;
+document.addEventListener('mousemove', (e) => {
+  mouseHeading = (e.clientX / window.innerWidth) * 360;
+  const compassTape = document.getElementById('compassTape');
+  if (compassTape) {
+    compassTape.style.transform = `translateX(${-(mouseHeading % 360) * 2}px)`;
+  }
+  const headingEl = document.getElementById('heading');
+  if (headingEl) {
+    headingEl.textContent = Math.round(mouseHeading) + '°';
+  }
+});
+
+// MODE SWITCHING
+const modes = {
+  nv:  { label:'NIGHT VISION ACTIVE', sceneFilter:'hue-rotate(0deg) saturate(1.2)', compassBg:'rgba(0,18,0,.95)' },
+  thm: { label:'THERMAL IMAGING', sceneFilter:'hue-rotate(40deg) saturate(2.2)', compassBg:'rgba(18,8,0,.95)' },
+  std: { label:'STANDARD VIEW', sceneFilter:'hue-rotate(115deg) saturate(.25)', compassBg:'rgba(8,10,8,.95)' },
+  bko: { label:'BLACKOUT MODE', sceneFilter:'brightness(.12) contrast(2)', compassBg:'rgba(0,0,0,.98)' },
+};
+
+let currentMode = 'nv';
+let dialerOpen = false;
+
+function setMode(m) {
+  currentMode = m;
+  document.querySelector('.visor').style.filter = modes[m].sceneFilter;
+  document.querySelector('.compass').style.background = modes[m].compassBg;
+  
+  document.querySelectorAll('.dopt').forEach(el => {
+    el.classList.remove('sel');
+    const dot = el.querySelector('div');
+    if (dot) dot.className = 'dempty';
+  });
+  
+  const selected = document.querySelector(`[data-mode="${m}"]`);
+  if (selected) {
+    selected.classList.add('sel');
+    const dot = selected.querySelector('div');
+    if (dot) dot.className = 'dsel';
+  }
+  
+  const modebar = document.querySelector('.modebar');
+  modebar.style.opacity = '1';
+  modebar.textContent = '► MODE: ' + modes[m].label;
+  setTimeout(() => { modebar.style.opacity = '0'; }, 2500);
+}
+
+function toggleDialer() {
+  dialerOpen = !dialerOpen;
+  document.querySelector('.dialer').style.display = dialerOpen ? 'block' : 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'm' || e.key === 'M') { toggleDialer(); return; }
+  if (!dialerOpen) return;
+  const modeKeys = Object.keys(modes);
+  const idx = modeKeys.indexOf(currentMode);
+  if (e.key === 'ArrowDown') setMode(modeKeys[(idx+1) % modeKeys.length]);
+  if (e.key === 'ArrowUp') setMode(modeKeys[(idx-1+modeKeys.length) % modeKeys.length]);
+  if (e.key === 'Enter') { setMode(currentMode); toggleDialer(); }
+});
+
+document.querySelectorAll('.dopt').forEach(el => {
+  el.addEventListener('click', () => {
+    setMode(el.getAttribute('data-mode') || 'nv');
+    toggleDialer();
+  });
+});
+
+// RANDOM TARGETS
+const activeAlerts = new Map();
+
+function queueContactAlert(payload) {
+  const {tgtId, message, bearing} = payload;
+  const alertList = document.getElementById('alert-list');
+  
+  if (activeAlerts.has(tgtId)) {
+    clearTimeout(activeAlerts.get(tgtId).timeout);
+    const oldEl = document.getElementById(`alert-${tgtId}`);
+    if (oldEl) oldEl.remove();
+    
+    // Remove compass marker
+    const markerEl = document.getElementById(`marker-${tgtId}`);
+    if (markerEl) markerEl.remove();
+  }
+  
+  const entry = document.createElement('div');
+  entry.id = `alert-${tgtId}`;
+  entry.className = 'alert-entry';
+  entry.textContent = message;
+  alertList.appendChild(entry);
+  
+  // Add compass marker
+  const markersContainer = document.getElementById('compassMarkers');
+  const marker = document.createElement('div');
+  marker.id = `marker-${tgtId}`;
+  marker.className = 'compass-marker';
+  const label = document.createElement('div');
+  label.className = 'compass-marker-label';
+  label.textContent = `${bearing}°`;
+  marker.appendChild(label);
+  markersContainer.appendChild(marker);
+  
+  // Update marker position on mouse move
+  const updateMarker = () => {
+    const offset = bearing - mouseHeading;
+    const percent = 50 + (offset / 360) * 100;
+    marker.style.left = percent + '%';
+  };
+  
+  document.addEventListener('mousemove', updateMarker);
+  updateMarker();
+  
+  const timeout = setTimeout(() => {
+    entry.remove();
+    marker.remove();
+    activeAlerts.delete(tgtId);
+  }, 3000);
+  
+  activeAlerts.set(tgtId, {message, timeout, bearing, updateMarker});
+}
+
+function getDirection(bearing) {
+  if (bearing < 45 || bearing >= 315) return 'N';
+  if (bearing < 135) return 'E';
+  if (bearing < 225) return 'S';
+  return 'W';
+}
+
+function spawnSingleTarget() {
+  const rcamFeed = document.getElementById('rcamFeed');
+  const tgtId = Math.floor(Math.random() * 10000);
+  const bearing = Math.floor(Math.random() * 360);
+  const randomLeft = Math.random() * 85 + 5;
+  
+  const blip = document.createElement('div');
+  blip.className = 'target-blip';
+  blip.style.left = randomLeft + '%';
+  blip.style.top = Math.random() * 60 + 20 + 'px';
+  
+  const label = document.createElement('div');
+  label.className = 'target-label';
+  label.textContent = `${bearing}°`;
+  blip.appendChild(label);
+  
+  rcamFeed.appendChild(blip);
+  
+  const direction = getDirection(bearing);
+  queueContactAlert({
+    tgtId,
+    bearing,
+    message: `MOVEMENT — ${bearing}° ${direction}`
+  });
+  
+  const timeout = setTimeout(() => {
+    blip.remove();
+    activeAlerts.delete(tgtId);
+  }, 3000);
+  
+  setTimeout(spawnSingleTarget, Math.random() * 3000 + 1000);
+}
+
+spawnSingleTarget();
+
+function showAlert(payload) {
+  const alertEl = document.getElementById('alert-panel');
+  if (!alertEl) return;
+  alertEl.style.display = 'block';
+  alertEl.querySelector('.alert-header').textContent = '⚠️ ' + payload.type;
+  setTimeout(() => { alertEl.style.display = 'none'; }, 5000);
+}
+
+// HEATMAP
+fetch('http://localhost:8080/api/v1/intel/heatmap')
+  .then(r => r.json())
+  .then(zones => {
+    const mapEl = document.querySelector('.map');
+    zones.forEach(zone => {
+      const marker = document.createElement('div');
+      const size = Math.max(10, Math.min(40, zone.risk * 8));
+      marker.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:rgba(255,0,0,0.7);border-radius:50%;box-shadow:0 0 15px rgba(255,0,0,0.9);z-index:5`;
+      marker.style.left = ((zone.lon - 73) / 4 * 100) + '%';
+      marker.style.top = ((35.5 - zone.lat) / 3 * 100) + '%';
+      mapEl.appendChild(marker);
+    });
+  })
+  .catch(err => console.error('Heatmap error:', err));
+</script>
+</body>
+</html>
