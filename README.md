@@ -132,7 +132,7 @@ docker-compose down
 - Never commit `application.properties`, `docker-compose.yml`, or `.env`
 - JWT-protected API endpoints
 
-### Overview
+## Overview
 <img width="875" height="439" alt="image" src="https://github.com/user-attachments/assets/60132ebf-cc8b-477d-a41a-8cde36dd43e8" />
 ### Modes
 <img width="600" height="455" alt="image" src="https://github.com/user-attachments/assets/ecddac8a-0934-489d-b629-95a6fbc918f6" />
