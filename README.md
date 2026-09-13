@@ -85,31 +85,31 @@ Demonstrated end-to-end communication from simulated sensor inputs through AI in
 
 drishti-backend/
 └── Drishti-Backend/src/main/java/com/drishti/
-├── DrishtiBackendApplication.java # Main Spring Boot entry point
-├── config/ # Spring configuration & beans
+├── DrishtiBackendApplication.java # Main entry point
+├── config/ # Spring configuration
 ├── controller/ # REST endpoints
 ├── service/ # Business logic & GNN inference
-├── repository/ # Neo4j & PostgreSQL data access
+├── repository/ # Data access layer
 ├── model/ # Entity classes
-├── dto/ # Data Transfer Objects
-├── websocket/ # WebSocket handlers for real-time HUD
-└── scheduler/ # Scheduled background tasks
+├── dto/ # Data transfer objects
+├── websocket/ # Real-time HUD communication
+└── scheduler/ # Background tasks
 
 ## Architecture
 
-Simulated Sensors
-↓
-Spring Boot REST APIs / WebSocket
-↓
-GNN Inference Pipeline
-↓
+   Simulated Sensors
+               ↓
+   Spring Boot REST APIs / WebSocket
+               ↓
+      GNN Inference Pipeline
+               ↓
 ┌──────────────┬──────────────┐
-↓ ↓ ↓
+↓              ↓              ↓
 Neo4j Graph PostgreSQL Redis Cache
-↑ ↑ ↑
+↑              ↑              ↑
 └──────────────┴──────────────┘
-↓
-React HUD
+               ↓
+          React HUD
 
 
 ## Development
