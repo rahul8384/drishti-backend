@@ -132,6 +132,20 @@ docker-compose down
 - Never commit `application.properties`, `docker-compose.yml`, or `.env`
 - JWT-protected API endpoints
 
+### Overview
+<img width="875" height="439" alt="image" src="https://github.com/user-attachments/assets/60132ebf-cc8b-477d-a41a-8cde36dd43e8" />
+### Modes
+<img width="600" height="455" alt="image" src="https://github.com/user-attachments/assets/ecddac8a-0934-489d-b629-95a6fbc918f6" />
+### GNN Heat Map for Dangerous Areas
+<img width="397" height="591" alt="image" src="https://github.com/user-attachments/assets/3056a5c4-57ea-4f64-bf9d-bb2e68292cec" />
+### Squat Vitals
+<img width="494" height="445" alt="image" src="https://github.com/user-attachments/assets/76e760cf-29d1-4c69-b718-465b95801809" />
+### Rear View & Compass Strip
+<img width="924" height="115" alt="image" src="https://github.com/user-attachments/assets/2b6d26d7-0258-4f49-bf65-9a7fad1b631e" />
+### Silent Communication
+<img width="535" height="202" alt="image" src="https://github.com/user-attachments/assets/542ba62e-9b41-4eaa-b89d-8576b9cad0ab" />
+
+
 ## Author
 
 Rahul  
