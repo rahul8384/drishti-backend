@@ -97,13 +97,13 @@ Demonstrated end-to-end communication from simulated sensor inputs through AI in
 ## Architecture
 
 Simulate Sensor
-   |
+   ->
 Spring Boot REST APIs
-   |
+   ->
 GNN Inference
-   |
+   ->
 Neo4j, PostgreSQL, Redis
-   │
+   ->
 React HUD
 
 
