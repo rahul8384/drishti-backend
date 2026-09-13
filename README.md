@@ -83,33 +83,43 @@ Demonstrated end-to-end communication from simulated sensor inputs through AI in
 
 ## Project Structure
 
-drishti-backend/
-└── Drishti-Backend/src/main/java/com/drishti/
-├── DrishtiBackendApplication.java # Main entry point
-├── config/ # Spring configuration
-├── controller/ # REST endpoints
-├── service/ # Business logic & GNN inference
-├── repository/ # Data access layer
-├── model/ # Entity classes
-├── dto/ # Data transfer objects
-├── websocket/ # Real-time HUD communication
-└── scheduler/ # Background tasks
+### Key Directories
+
+- **config/** – Spring Boot configuration & bean definitions
+- **controller/** – REST API endpoints
+- **service/** – Business logic & GNN inference pipeline
+- **repository/** – Neo4j & PostgreSQL data access
+- **model/** – Entity classes
+- **dto/** – Data Transfer Objects
+- **websocket/** – Real-time HUD communication handlers
+- **scheduler/** – Background scheduled tasks
 
 ## Architecture
 
-   Simulated Sensors
-               ↓
-   Spring Boot REST APIs / WebSocket
-               ↓
-      GNN Inference Pipeline
-               ↓
-┌──────────────┬──────────────┐
-↓              ↓              ↓
-Neo4j Graph PostgreSQL Redis Cache
-↑              ↑              ↑
-└──────────────┴──────────────┘
-               ↓
-          React HUD
+┌─────────────────┐
+│ Simulated │
+│ Sensors │
+└────────┬────────┘
+│
+┌────────▼────────────────────────┐
+│ Spring Boot REST APIs / WebSocket│
+└────────┬────────────────────────┘
+│
+┌────────▼──────────────────┐
+│ GNN Inference Pipeline │
+└────────┬──────────────────┘
+│
+┌────┴────────┬──────────┬──────────┐
+│ │ │ │
+┌───▼───┐ ┌──────▼────┐ ┌──▼────┐ ┌──▼─────┐
+│ Neo4j │ │PostgreSQL │ │ Redis │ │ Cache │
+└───────┘ └───────────┘ └───────┘ └────────┘
+│ │ │ │
+└────┬────────┴──────────┴──────────┘
+│
+┌────▼──────┐
+│ React HUD │
+└───────────┘
 
 
 ## Development
