@@ -96,30 +96,15 @@ Demonstrated end-to-end communication from simulated sensor inputs through AI in
 
 ## Architecture
 
-┌─────────────────┐
-│ Simulated │
-│ Sensors │
-└────────┬────────┘
-│
-┌────────▼────────────────────────┐
-│ Spring Boot REST APIs / WebSocket│
-└────────┬────────────────────────┘
-│
-┌────────▼──────────────────┐
-│ GNN Inference Pipeline │
-└────────┬──────────────────┘
-│
-┌────┴────────┬──────────┬──────────┐
-│ │ │ │
-┌───▼───┐ ┌──────▼────┐ ┌──▼────┐ ┌──▼─────┐
-│ Neo4j │ │PostgreSQL │ │ Redis │ │ Cache │
-└───────┘ └───────────┘ └───────┘ └────────┘
-│ │ │ │
-└────┬────────┴──────────┴──────────┘
-│
-┌────▼──────┐
-│ React HUD │
-└───────────┘
+Simulate Sensor
+   |
+Spring Boot REST APIs
+   |
+GNN Inference
+   |
+Neo4j, PostgreSQL, Redis
+   │
+React HUD
 
 
 ## Development
